@@ -1,6 +1,6 @@
 ﻿{
     "GpuName":  "None",
-    "Timestamp":  "2026-02-14 14:22:27",
+    "Timestamp":  "2026-02-14 15:13:40",
     "Drift":  {
                   "Changed":  [
 
@@ -25,6 +25,5 @@
     "GpuVram":  0,
     "Hashes":  {
                    ".env":  "53030D3C9E737FE6AF5A423E037A31AFD2E465A63E64E1EC89E5124B8098C359"
-               },
-    "SetupMode":  "Global"
+               }
 }

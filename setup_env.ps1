@@ -10,34 +10,101 @@ if ($Global) { Write-Host "[GLOBAL MODE] Dependencies will be installed to syste
 
 $CurrentPath = [System.IO.Directory]::GetCurrentDirectory()
 
-# 1. Environment Choice
+# 0. Python Root Check & Auto-Install
+try {
+    $PythonCheck = & python --version 2>&1
+    if ($PythonCheck -notlike "*Python 3.*") { throw "Python not found" }
+}
+catch {
+    Write-Host "Python not found. Attempting auto-installation via winget..." -ForegroundColor Yellow
+    if ($DryRun) {
+        Write-Host "[DRY RUN] Would run: winget install Python.Python.3 --silent --show-progress"
+    }
+    else {
+        & winget install Python.Python.3 --silent --show-progress
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "Failed to install Python via winget. Please install it manually from python.org."
+            exit 1
+        }
+        Write-Host "Python installed. Please restart your terminal if it doesn't work in the next step." -ForegroundColor Green
+        # Refresh Path for current session if possible
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+    }
+}
+
+# 0.5 Node.js Root Check & Auto-Install
+try {
+    $NodeCheck = & node -v 2>&1
+    if ($NodeCheck -notlike "v*") { throw "Node not found" }
+}
+catch {
+    Write-Host "Node.js not found. Attempting auto-installation via winget..." -ForegroundColor Yellow
+    if ($DryRun) {
+        Write-Host "[DRY RUN] Would run: winget install OpenJS.NodeJS.LTS --silent --show-progress"
+    }
+    else {
+        & winget install OpenJS.NodeJS.LTS --silent --show-progress
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "Note: Node.js installation via winget might need user interaction or failed. Please check manually if needed." -ForegroundColor Yellow
+        }
+        else {
+            Write-Host "Node.js (LTS) installed." -ForegroundColor Green
+            # Refresh Path again
+            $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+        }
+    }
+}
+
+# 1. Environment Choice & Path Resolution
 $IsWinSystem = $PSVersionTable.Platform -match "Win" -or $env:OS -like "*Windows*"
+
+# Load Path Manifest if exists
+$ManifestPath = Join-Path $CurrentPath "state\path_map.json"
+$ExternalVenvPath = $null
+if (Test-Path $ManifestPath) {
+    try {
+        $Manifest = Get-Content $ManifestPath | ConvertFrom-Json
+        $ExternalVenvPath = $Manifest.venv
+    }
+    catch {}
+}
 
 if ($Global) {
     Write-Host "Step 1: Skipping Virtual Environment (Global mode enabled)." -ForegroundColor Cyan
     $PipCommand = "pip"
 }
 else {
-    Write-Host "Step 1: Managing Virtual Environment ($EnvName)..."
-    if (Test-Path "$CurrentPath\$EnvName") {
+    # Determine Venv Path
+    if ($null -eq $ExternalVenvPath) {
+        $VenvFullPath = Join-Path $CurrentPath $EnvName
+        Write-Host "Step 1: Managing Local Virtual Environment ($EnvName)..."
+    }
+    else {
+        $VenvFullPath = $ExternalVenvPath
+        Write-Host "Step 1: Managing External Hashed Virtual Environment..."
+        Write-Host ">> Target: $VenvFullPath" -ForegroundColor Gray
+    }
+
+    if (Test-Path $VenvFullPath) {
         Write-Host "Virtual environment already exists." -ForegroundColor Cyan
     }
     else {
         if ($DryRun) {
-            Write-Host "[DRY RUN] Would run: python -m venv $EnvName"
+            Write-Host "[DRY RUN] Would run: python -m venv $VenvFullPath"
         }
         else {
             try {
-                python -m venv $EnvName
+                if (-not (Test-Path (Split-Path $VenvFullPath))) { New-Item -ItemType Directory (Split-Path $VenvFullPath) -Force | Out-Null }
+                python -m venv $VenvFullPath
                 Write-Host "Done." -ForegroundColor Green
             }
             catch {
-                Write-Error "Failed to create venv."
+                Write-Error "Failed to create venv at $VenvFullPath."
                 exit 1
             }
         }
     }
-    $PipCommand = if ($IsWinSystem) { Join-Path $CurrentPath "$EnvName\Scripts\pip.exe" } else { Join-Path $CurrentPath "$EnvName/bin/pip" }
+    $PipCommand = if ($IsWinSystem) { Join-Path $VenvFullPath "Scripts\pip.exe" } else { Join-Path $VenvFullPath "bin/pip" }
 }
 
 # 2. Dependency Check

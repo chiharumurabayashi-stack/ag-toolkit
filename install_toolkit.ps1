@@ -5,8 +5,8 @@ param(
 
 Write-Host "--- Antigravity Toolkit Installer ---" -ForegroundColor Cyan
 
-$SourcePath = "C:\Users\chiha\.gemini\antigravity\scratch\ag_toolkit"
-$SkillSource = "C:\Users\chiha\.gemini\antigravity\skills\ag_env_diagnostic"
+$SourcePath = $PSScriptRoot
+$SkillSource = Join-Path $env:USERPROFILE ".gemini\antigravity\skills\ag_env_diagnostic"
 
 # 1. Create Destination
 if (-not (Test-Path $DestinationPath)) {

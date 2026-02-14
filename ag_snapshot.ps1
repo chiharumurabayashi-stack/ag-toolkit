@@ -31,12 +31,16 @@ foreach ($f in $FilesToBackup) {
 Write-Host "Generating snapshot metadata..."
 $LatestJson = Join-Path $CurrentPath "state/latest.json"
 $Latest = if (Test-Path $LatestJson) { Get-Content $LatestJson | ConvertFrom-Json } else { $null }
+$IsAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")
+$PlanJson = if (Test-Path (Join-Path $CurrentPath "state/fix_plan.json")) { Get-Content (Join-Path $CurrentPath "state/fix_plan.json") | ConvertFrom-Json } else { $null }
 
 $Meta = @{
     Timestamp       = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     Tag             = $Tag
-    ToolkitVersion  = "1.0.0"
+    ToolkitVersion  = "1.1.0"
     ProjectRoot     = $CurrentPath
+    AdminState      = $IsAdmin
+    FixPlan         = $PlanJson
     PythonVer       = if ($Latest) { $Latest.PythonVersion } else { "Unknown" }
     VenvName        = ".venv"
     FilesIncluded   = $FoundFiles
