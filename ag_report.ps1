@@ -31,10 +31,11 @@ Model    : $(if ($State.GpuName) { $State.GpuName } else { "None detected" })
 VRAM     : $(if ($State.GpuVram) { $State.GpuVram } else { 0 }) MB
 
 [Environment Info]
-Root Path: $(if ($State.Path) { $State.Path } else { Get-Location })
-OneDrive : $(if ($State.OneDrive -ne $null) { $State.OneDrive } else { "Unknown" })
-Status   : $(if ($State.Ready) { "READY" } else { "FAIL/INCOMPLETE" })
-Baseline : $($State.IsBaseline)
+Root Path  : $(if ($State.Path) { $State.Path } else { Get-Location })
+OneDrive   : $(if ($null -ne $State.OneDrive) { $State.OneDrive } else { "Unknown" })
+Status     : $(if ($State.Ready) { "READY" } else { "FAIL/INCOMPLETE" })
+Setup Mode : $(if ($State.SetupMode) { $State.SetupMode } else { "Unknown" })
+Baseline   : $($State.IsBaseline)
 
 [Persistence & drift]
 Last Snapshot: $(if ($State.LastSnapshot) { $State.LastSnapshot } else { "None" })

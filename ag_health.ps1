@@ -44,9 +44,19 @@ else {
     Report "WARN" "File" "config.json missing. Using default settings."
 }
 
-# 3. Virtual Environment
-Write-Host "`nChecking Virtual Environment..."
-if (Test-Path ".venv") {
+# 3. Virtual Environment / Global Mode
+Write-Host "`nChecking Environment Mode..."
+$LatestFile = "state/latest.json"
+$SetupMode = "Venv" # Default
+if (Test-Path $LatestFile) {
+    $State = Get-Content $LatestFile | ConvertFrom-Json
+    if ($State.SetupMode) { $SetupMode = $State.SetupMode }
+}
+
+if ($SetupMode -eq "Global") {
+    Report "READY" "Env" "Running in Global Mode (No venv required)."
+}
+elseif (Test-Path ".venv") {
     Report "READY" "venv" ".venv found."
 }
 else {
