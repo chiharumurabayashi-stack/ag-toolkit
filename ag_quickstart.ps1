@@ -24,10 +24,7 @@ if ($LASTEXITCODE -ne 0 -and -not $ForceContinue) {
 
 # 2. Setup
 Write-Host "`n>> Phase 2/3: System Setup" -ForegroundColor Cyan
-$SetupParams = @()
-if ($DryRun) { $SetupParams += "-DryRun" }
-if ($Global) { $SetupParams += "-Global" }
-& $SetupScript @SetupParams
+& $SetupScript -Global:$Global -DryRun:$DryRun
 if ($LASTEXITCODE -ne 0 -and -not $ForceContinue) {
     Write-Host "`n[FATAL] Setup failed. Stopping." -ForegroundColor Red
     exit 1

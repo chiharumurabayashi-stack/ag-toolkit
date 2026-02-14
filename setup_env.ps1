@@ -11,7 +11,7 @@ if ($Global) { Write-Host "[GLOBAL MODE] Dependencies will be installed to syste
 $CurrentPath = [System.IO.Directory]::GetCurrentDirectory()
 
 # 1. Environment Choice
-$IsWindows = $PSVersionTable.Platform -match "Win" -or $env:OS -like "*Windows*"
+$IsWinSystem = $PSVersionTable.Platform -match "Win" -or $env:OS -like "*Windows*"
 
 if ($Global) {
     Write-Host "Step 1: Skipping Virtual Environment (Global mode enabled)." -ForegroundColor Cyan
@@ -37,7 +37,7 @@ else {
             }
         }
     }
-    $PipCommand = if ($IsWindows) { Join-Path $CurrentPath "$EnvName\Scripts\pip.exe" } else { Join-Path $CurrentPath "$EnvName/bin/pip" }
+    $PipCommand = if ($IsWinSystem) { Join-Path $CurrentPath "$EnvName\Scripts\pip.exe" } else { Join-Path $CurrentPath "$EnvName/bin/pip" }
 }
 
 # 2. Dependency Check
@@ -81,13 +81,21 @@ if (-not $DryRun) {
     $LatestFile = Join-Path $CurrentPath "state\latest.json"
     if (Test-Path $LatestFile) {
         try {
-            $State = Get-Content $LatestFile | ConvertFrom-Json
-            $State.SetupMode = if ($Global) { "Global" } else { "Venv" }
-            $State | ConvertTo-Json -Depth 5 | Out-File $LatestFile -Encoding UTF8
+            $StateTmp = Get-Content $LatestFile -Raw | ConvertFrom-Json
+            $ModeValue = if ($Global) { "Global" } else { "Venv" }
+            
+            # Robust property addition for PSUcustomObject
+            $StateTmp | Add-Member -NotePropertyName "SetupMode" -NotePropertyValue $ModeValue -Force
+            
+            $StateTmp | ConvertTo-Json -Depth 5 | Out-File $LatestFile -Encoding UTF8 -Force
+            Write-Host "State updated with SetupMode: $ModeValue" -ForegroundColor Gray
         }
         catch {
-            Write-Host "Warning: Could not update state with SetupMode." -ForegroundColor Yellow
+            Write-Host "Warning: Could not update state with SetupMode. Error: $($_.Exception.Message)" -ForegroundColor Yellow
         }
+    }
+    else {
+        Write-Host "Note: state/latest.json not found at $LatestFile. Skipping state update." -ForegroundColor Gray
     }
 }
 

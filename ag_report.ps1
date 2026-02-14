@@ -34,7 +34,7 @@ VRAM     : $(if ($State.GpuVram) { $State.GpuVram } else { 0 }) MB
 Root Path  : $(if ($State.Path) { $State.Path } else { Get-Location })
 OneDrive   : $(if ($null -ne $State.OneDrive) { $State.OneDrive } else { "Unknown" })
 Status     : $(if ($State.Ready) { "READY" } else { "FAIL/INCOMPLETE" })
-Setup Mode : $(if ($State.SetupMode) { $State.SetupMode } else { "Unknown" })
+Setup Mode : $(if ($null -ne $State.SetupMode) { $State.SetupMode } else { "Unknown" })
 Baseline   : $($State.IsBaseline)
 
 [Persistence & drift]
