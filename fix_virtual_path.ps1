@@ -1,28 +1,13 @@
 param(
     [string]$PhysicalPath = $PSScriptRoot,
-    [string]$TargetDrive = $null,
+    [string]$TargetDrive = $null,  # If provided, uses subst
+    [string]$WorkDir = "C:\.ag_work",
     [switch]$Persist = $true,
     [switch]$Force = $false
 )
 
-# 1. Drive Letter Strategy
-$SafeCandidates = @('X', 'Y', 'Z', 'P', 'Q', 'R')
-$RestrictionList = @('A', 'B', 'C', 'D', 'E')
-
-function Get-NextAvailableDrive {
-    $UsedDrives = (Get-PSDrive -PSProvider FileSystem).Name
-    foreach ($Letter in $SafeCandidates) {
-        if ($Letter -notin $UsedDrives) { return "$Letter`:" }
-    }
-    # Fallback: scan from Z downwards excluding restrictions
-    for ($i = [int][char]'Z'; $i -ge [int][char]'F'; $i--) {
-        $Letter = [char]$i
-        if ($Letter -notin $UsedDrives -and $Letter -notin $SafeCandidates) {
-            return "$Letter`:"
-        }
-    }
-    return $null
-}
+# 1. Strategy Determination
+$IsJunctionMode = [string]::IsNullOrEmpty($TargetDrive)
 
 # 2. Path Manifest Logic
 $ManifestDir = Join-Path $PhysicalPath "state"
@@ -41,45 +26,52 @@ function Write-PathManifest {
 }
 
 # 3. Execution
-Write-Host "--- Antigravity Virtual Path Fixer ---" -ForegroundColor Cyan
+Write-Host "--- Antigravity Path Layer Stabilizer ---" -ForegroundColor Cyan
 
-# Check if already running on a virtual drive
-$CurrentRoot = (Get-Item $PhysicalPath).Root.Name
-if ($CurrentRoot -in $SafeCandidates -and -not $Force) {
-    Write-Host "[INFO] Already running on virtual drive $CurrentRoot" -ForegroundColor Green
-    exit 0
+if ($IsJunctionMode) {
+    # JUNCTION MODE: C:\.ag_work\project-name
+    $ProjectName = (Get-Item $PhysicalPath).Name
+    if (-not (Test-Path $WorkDir)) { New-Item -ItemType Directory -Path $WorkDir -Force | Out-Null }
+    
+    $TargetLink = Join-Path $WorkDir $ProjectName
+    Write-Host ">> Creating Junction: $TargetLink -> $PhysicalPath" -ForegroundColor Cyan
+    
+    if (Test-Path $TargetLink) {
+        # Check if it's already a junction to the same target
+        $Existing = (Get-Item $TargetLink).Target
+        if ($Existing -eq $PhysicalPath -and -not $Force) {
+            Write-Host "[INFO] Junction already exists and points to correct target." -ForegroundColor Green
+            $VirtualPath = $TargetLink
+        }
+        else {
+            Write-Host "[WARN] Existing junction/folder found at $TargetLink. Re-creating..." -ForegroundColor Yellow
+            cmd /c "rd /s /q `"$TargetLink`""
+            cmd /c "mklink /J `"$TargetLink`" `"$PhysicalPath`""
+            $VirtualPath = $TargetLink
+        }
+    }
+    else {
+        cmd /c "mklink /J `"$TargetLink`" `"$PhysicalPath`""
+        $VirtualPath = $TargetLink
+    }
 }
-
-# Select Drive
-if (-not $TargetDrive) {
-    $TargetDrive = Get-NextAvailableDrive
+else {
+    # SUBST MODE (Legacy Drive Letter)
+    Write-Host ">> Mapping $PhysicalPath to $TargetDrive" -ForegroundColor Cyan
+    subst $TargetDrive "$PhysicalPath"
+    $VirtualPath = $TargetDrive
 }
-if (-not $TargetDrive) {
-    Write-Host "[FAIL] No available drive letters found." -ForegroundColor Red
-    exit 1
-}
-
-Write-Host ">> Mapping $PhysicalPath to $TargetDrive" -ForegroundColor Cyan
-subst $TargetDrive "$PhysicalPath"
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "[FAIL] subst command failed." -ForegroundColor Red
+    Write-Host "[FAIL] Path mapping failed." -ForegroundColor Red
     exit 1
 }
 
 # 4. Persistence (Registry)
-if ($Persist) {
-    Write-Host ">> Registering persistence in HKCU Run..." -ForegroundColor Cyan
-    $RegPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
-    $RegName = "AntigravitySubst_$($TargetDrive.Replace(':',''))"
-    $RegValue = "subst $TargetDrive `"$PhysicalPath`""
-    
-    try {
-        Set-ItemProperty -Path $RegPath -Name $RegName -Value $RegValue -ErrorAction Stop
-        Write-Host "[SUCCESS] Registry updated: $RegName" -ForegroundColor Green
-    } catch {
-        Write-Host "[WARN] Failed to write to registry. Persistence may not work." -ForegroundColor Yellow
-    }
+if ($Persist -and -not $IsJunctionMode) {
+    # Registry persistence is only needed for subst (drive letters don't persist)
+    # Junctions are persistent filesystem entries, so no registry needed!
+    Write-Host "[INFO] Junctions are persistent by nature. No registry entry needed." -ForegroundColor Gray
 }
 
 # 5. Manifest Generation
@@ -87,7 +79,7 @@ $VenvBase = "C:\.ag_venv"
 $ProjectHash = [BitConverter]::ToString((New-Object System.Security.Cryptography.SHA256Managed).ComputeHash([System.Text.Encoding]::UTF8.GetBytes($PhysicalPath))).Replace("-", "").Substring(0, 8)
 $VenvPath = Join-Path $VenvBase $ProjectHash
 
-Write-PathManifest -Phys $PhysicalPath -Virt $TargetDrive -Venv $VenvPath
-Write-Host "[SUCCESS] Root mapped to $TargetDrive" -ForegroundColor Green
+Write-PathManifest -Phys $PhysicalPath -Virt $VirtualPath -Venv $VenvPath
+Write-Host "[SUCCESS] Path Layer Stabilized: $VirtualPath" -ForegroundColor Green
 Write-Host "[INFO] Project Hash: $ProjectHash" -ForegroundColor Gray
 Write-Host "[INFO] Manifest saved to $ManifestPath" -ForegroundColor Gray
