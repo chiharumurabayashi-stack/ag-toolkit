@@ -1,7 +1,7 @@
 # Antigravity Report Generator
 # Summarizes system and environment state by reading ag_state.json
 
-$StateFile = "state/ag_state.json"
+$StateFile = "state/latest.json"
 $ReportPath = "logs/env_report.txt" # Simplified path for consistent access
 
 if (Test-Path $StateFile) {
