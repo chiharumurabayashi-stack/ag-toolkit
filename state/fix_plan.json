@@ -1,0 +1,12 @@
+﻿{
+    "Scope":  [
+                  "PATH"
+              ],
+    "Reversible":  true,
+    "Fix":  "StorePythonAlias",
+    "Level":  "Moderate",
+    "Precheck":  [
+                     "python_found"
+                 ],
+    "Order":  20
+}

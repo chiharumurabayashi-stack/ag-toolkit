@@ -143,7 +143,37 @@ if (-not (Test-Path "$CurrentPath\.env")) {
     }
 }
 
-# 4. Update State Status
+# 4. Browser Automation Setup (Playwright)
+Write-Host "Step 4: Setting up Browser Automation (Playwright)..." -ForegroundColor Cyan
+if ($DryRun) {
+    Write-Host "[DRY RUN] Would install playwright and chromium to C:\.ag_browser"
+}
+else {
+    # Install Playwright python package
+    Write-Host "Installing playwright package..." -ForegroundColor Gray
+    & $PipCommand install playwright python-dotenv
+    
+    # Ensure local cache directory exists
+    $BrowserPath = "C:\.ag_browser"
+    if (-not (Test-Path $BrowserPath)) {
+        New-Item -ItemType Directory -Path $BrowserPath -Force | Out-Null
+        Write-Host "Created local browser cache at $BrowserPath" -ForegroundColor Gray
+    }
+    
+    # Install Chromium
+    Write-Host "Installing Chromium binary..." -ForegroundColor Gray
+    $env:PLAYWRIGHT_BROWSERS_PATH = $BrowserPath
+    & $PipCommand -m playwright install chromium
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "Browser automation setup complete." -ForegroundColor Green
+    }
+    else {
+        Write-Host "Warning: Playwright/Chromium installation failed. Browser tests might not work." -ForegroundColor Yellow
+    }
+}
+
+# 5. Update State Status
 if (-not $DryRun) {
     $LatestFile = Join-Path $CurrentPath "state\latest.json"
     if (Test-Path $LatestFile) {
