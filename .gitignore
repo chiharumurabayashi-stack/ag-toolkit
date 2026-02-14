@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+antigravity_env/
+
+# Secrets
+.env
+
+# Antigravity State & Backups (Optional: keep latest.json, ignore history/backups)
+state/history/
+backups/
+logs/*.txt
+logs/*.log
+
+# IDEs
+.vscode/
+.idea/

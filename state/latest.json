@@ -1,0 +1,29 @@
+﻿{
+    "GpuName":  "None",
+    "Timestamp":  "2026-02-14 13:37:07",
+    "Drift":  {
+                  "Changed":  [
+                                  ".env"
+                              ],
+                  "Added":  [
+
+                            ],
+                  "Removed":  [
+
+                              ]
+              },
+    "OneDrive":  false,
+    "LastSnapshot":  "None",
+    "Ready":  true,
+    "FoundVenvs":  [
+
+                   ],
+    "IsBaseline":  false,
+    "Path":  "C:\\Users\\chiha\\.gemini\\antigravity\\scratch\\ag_toolkit",
+    "PythonVersion":  "Python 3.13.12",
+    "NodeVersion":  "v24.12.0",
+    "GpuVram":  0,
+    "Hashes":  {
+                   ".env":  "53030D3C9E737FE6AF5A423E037A31AFD2E465A63E64E1EC89E5124B8098C359"
+               }
+}
