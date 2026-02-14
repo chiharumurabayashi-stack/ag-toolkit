@@ -127,19 +127,25 @@ else {
 
 # 3. Environment Template
 $EnvTemplate = "$CurrentPath\.env.template"
+$ToolkitTemplate = Join-Path $PSScriptRoot ".env.template"
+
 if (-not (Test-Path "$CurrentPath\.env")) {
     Write-Host "Step 3: Creating .env from template..."
-    if (Test-Path $EnvTemplate) {
+    $SourceTemplate = $null
+    if (Test-Path $EnvTemplate) { $SourceTemplate = $EnvTemplate }
+    elseif (Test-Path $ToolkitTemplate) { $SourceTemplate = $ToolkitTemplate }
+
+    if ($SourceTemplate) {
         if ($DryRun) {
-            Write-Host "[DRY RUN] Would copy .env.template to .env"
+            Write-Host "[DRY RUN] Would copy $SourceTemplate to .env"
         }
         else {
-            Copy-Item $EnvTemplate ".env"
-            Write-Host ".env created. Please fill in your API keys." -ForegroundColor Green
+            Copy-Item $SourceTemplate ".env"
+            Write-Host ".env created from $SourceTemplate. Please fill in your API keys." -ForegroundColor Green
         }
     }
     else {
-        Write-Host "No .env.template found. Skipping." -ForegroundColor Yellow
+        Write-Host "No .env.template found in root or toolkit. Skipping." -ForegroundColor Yellow
     }
 }
 
